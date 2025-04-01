@@ -5,30 +5,30 @@ import networkx as nx
 
 class Node:
     def __init__(self, word, probability):
-        self.word = word
-        self.probability = probability
-        self.left = None
-        self.right = None
+        self.word = word                 # Slovo v uzle
+        self.probability = probability   # Pravdepodobnosť výskytu slova
+        self.left = None                 # Ľavý podstrom
+        self.right = None                # Pravý podstrom
 
 
 class OptimalBST:
     def __init__(self, words, frequencies, total_freq):
-        self.words = sorted(words.items())  # Usporiadanie podľa lexikografického poradia
-        self.total_freq = total_freq
-        self.q_probs = self._compute_q_probabilities(frequencies)
-        self.tree, self.optimal_cost = self._construct_optimal_bst()
+        self.words = sorted(words.items())                              # Usporiadanie podľa lexikografického poradia
+        self.total_freq = total_freq                                    # Celková frekvencia všetkých slov
+        self.q_probs = self._compute_q_probabilities(frequencies)       # Pravdepodobnosti medzi kľúčmi
+        self.tree, self.optimal_cost = self._construct_optimal_bst()    # Vytvorenie optimálneho BST
 
     def _compute_q_probabilities(self, frequencies):
-        q_probs = []
-        bst_keys = [word for word, _ in self.words]
-        all_words = sorted(frequencies.keys())  # Lexikografické zoradenie všetkých slov
+        q_probs = []                                    # Zoznam pravdepodobností pre chýbajúce slová
+        bst_keys = [word for word, _ in self.words]     # Získame usporiadané kľúče BST
+        all_words = sorted(frequencies.keys())          # Lexikografické zoradenie všetkých slov
 
         # Pre každú dvojicu kľúčov v BST hľadáme slová medzi nimi
         for i in range(len(bst_keys) - 1):
-            k_i, k_next = bst_keys[i], bst_keys[i + 1]
-            between_words = [w for w in all_words if k_i < w < k_next]
-            between_freq = sum(frequencies[w] for w in between_words)
-            q_probs.append(between_freq / self.total_freq)
+            k_i, k_next = bst_keys[i], bst_keys[i + 1]                      # Dva susedné kľúče v BST
+            between_words = [w for w in all_words if k_i < w < k_next]      # Slová medzi týmito kľúčmi
+            between_freq = sum(frequencies[w] for w in between_words)       # Súčet frekvencií týchto slov
+            q_probs.append(between_freq / self.total_freq)                  # Normalizovaná pravdepodobnosť
 
         # Počiatočná a koncová pravdepodobnosť
         before_first = sum(frequencies[w] for w in all_words if w < bst_keys[0]) / self.total_freq
@@ -37,9 +37,9 @@ class OptimalBST:
         return [before_first] + q_probs + [after_last]
 
     def _construct_optimal_bst(self):
-        n = len(self.words)
-        keys = [word for word, _ in self.words]
-        probabilities = [prob for _, prob in self.words]
+        n = len(self.words)                                 # Počet kľúčov
+        keys = [word for word, _ in self.words]             # Zoznam slov
+        probabilities = [prob for _, prob in self.words]    # Pravdepodobnosti slov
 
         # Vytvorenie matíc na uchovanie nákladov a koreňov
         cost = [[0] * (n + 1) for _ in range(n + 1)]
@@ -51,20 +51,20 @@ class OptimalBST:
             root[i][i] = i
 
         # Dynamické programovanie na výpočet optimálnych nákladov
-        for length in range(2, n + 1):  # Dĺžka intervalu
-            for i in range(n - length + 1):
-                j = i + length - 1
-                cost[i][j] = float('inf')
+        for length in range(2, n + 1):                                                  # Pre všetky intervaly dĺžky 2, 3, ..., n
+            for i in range(n - length + 1):                                             # Začíname od indexu i
+                j = i + length - 1                                                      # Koncový index intervalu
+                cost[i][j] = float('inf')                                               # Inicializujeme na nekonečno
                 total_prob = sum(probabilities[i:j + 1]) + sum(self.q_probs[i:j + 2])
 
-                for r in range(i, j + 1):
+                for r in range(i, j + 1):                                               # Skúšame každý možný koreň v intervale
                     left_cost = cost[i][r - 1] if r > i else 0
                     right_cost = cost[r + 1][j] if r < j else 0
                     temp_cost = left_cost + right_cost + total_prob
 
-                    if temp_cost < cost[i][j]:
+                    if temp_cost < cost[i][j]:                                          # Ak je lacnejšie, aktualizujeme
                         cost[i][j] = temp_cost
-                        root[i][j] = r
+                        root[i][j] = r                                                  # Uložíme optimálny koreň
 
         return self._build_tree(keys, root, 0, n - 1), cost[0][n - 1]
 
@@ -72,30 +72,30 @@ class OptimalBST:
         if i > j:
             return None
 
-        optimal_root = root[i][j]
+        optimal_root = root[i][j]                                               # Optimálny koreň pre interval [i, j]
         node = Node(keys[optimal_root], self.words[optimal_root][1])
         node.left = self._build_tree(keys, root, i, optimal_root - 1)
         node.right = self._build_tree(keys, root, optimal_root + 1, j)
 
         return node
 
-    def search(self, word):
-        comparisons = 0
-        path = []
-        node = self.tree
+    def pocet_porovnani(self, word):
+        comparisons = 0                         # Počet porovnaní pri hľadaní
+        path = []                               # Uchováva cestu cez uzly stromu
+        node = self.tree                        # Začína od koreňa
 
-        while node:
-            comparisons += 1
-            path.append(node.word)
+        while node:                             # Pokým existuje uzol
+            comparisons += 1                    # Inkrementácia počtu porovnaní
+            path.append(node.word)              # Pridanie uzla do cesty
 
-            if word == node.word:
-                return comparisons, path
-            elif word < node.word:
+            if word == node.word:               # Ak sme našli hľadané slovo
+                return comparisons, path        # Návrat počtu porovnaní a cesty
+            elif word < node.word:              # Ak je hľadané slovo menšie, pokračujeme do ľavého podstromu
                 node = node.left
-            else:
+            else:                               # Ak je hľadané slovo väčšie, pokračujeme do pravého podstromu
                 node = node.right
 
-        return "slovo nenájdené", comparisons, path
+        return "slovo nenájdené", comparisons, path     # Ak sa slovo nenašlo
 
     def visualize_tree(self):
         def add_edges(graph, node, parent=None, pos={}, level=0, x=0, dx=1.0):
@@ -164,7 +164,7 @@ def build_bst_from_files(file1, file2):
 # Použitie:
 bst = build_bst_from_files('dictionary1.txt', 'dictionary2.txt')
 searched_word = "had"
-result = bst.search(searched_word)
+result = bst.pocet_porovnani(searched_word)
 print(f"Searched word: {searched_word}")
 print(f"Comparison count: {result[0]}")
 print(f"Route of searching: {result[1]}")
